@@ -22,11 +22,10 @@ async function bootstrap(): Promise<void> {
     view.renderEvents(events);
   } catch (error) {
     console.error('[Ticketera] Error crítico durante la inicialización:', error);
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : 'Error al cargar la cartelera.';
-    view.showError(errorMessage, () => void bootstrap());
+    view.showError(
+      'No pudimos cargar la cartelera en este momento. Verifica tu conexión e inténtalo de nuevo.',
+      () => void bootstrap(),
+    );
   }
 }
 

@@ -1,5 +1,6 @@
 import { type Booking, BookingStatus, type CreateBookingRequest } from '../models';
 import { APP_CONFIG } from '../config/app.config';
+import { parseJsonResponse } from '../utils/http.utils';
 
 function isBookingRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -41,6 +42,45 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function readServerMessage(response: Response): Promise<string | undefined> {
+  try {
+    const raw = await response.text();
+    const data = JSON.parse(raw) as unknown;
+    if (
+      isBookingRecord(data) &&
+      typeof data.error === 'string' &&
+      data.error.trim() !== ''
+    ) {
+      return data.error.trim();
+    }
+  } catch {
+    // cuerpo ilegible (no JSON) → sin mensaje del servidor
+  }
+  return undefined;
+}
+
+function buildBookingErrorMessage(
+  status: number,
+  serverMessage: string | undefined,
+): string {
+  if (status === 400) {
+    return 'Los datos enviados no son válidos. Revisa la información e inténtalo nuevamente.';
+  }
+  if (status === 404) {
+    return 'El evento seleccionado ya no está disponible para reservar.';
+  }
+  if (status === 409) {
+    return 'No hay entradas suficientes para el evento seleccionado.';
+  }
+  if (status === 502 || status === 503 || status === 504) {
+    return 'El servicio de reservas no está disponible en este momento. Inténtalo nuevamente.';
+  }
+  if (status >= 500) {
+    return 'Ocurrió un error en el servidor al procesar la reserva. Inténtalo nuevamente.';
+  }
+  return serverMessage ?? 'No fue posible completar la reserva. Inténtalo nuevamente.';
+}
+
 function createLocalBooking(payload: CreateBookingRequest): Booking {
   return {
     id: `local-${Date.now()}`,
@@ -71,14 +111,16 @@ export class BookingService {
       });
 
       if (!response.ok) {
-        const message =
-          response.status === 409
-            ? 'No hay entradas suficientes para el evento seleccionado.'
-            : `Error HTTP al crear la reserva: status ${response.status} (${response.statusText})`;
-        throw new Error(message);
+        const serverMessage = await readServerMessage(response);
+        throw new Error(
+          buildBookingErrorMessage(response.status, serverMessage),
+        );
       }
 
-      const rawData: unknown = await response.json();
+      const rawData: unknown = await parseJsonResponse(
+        response,
+        'El servidor no respondió con un formato válido.',
+      );
       return parseBooking(rawData);
     } catch (error) {
       // Un TypeError de fetch = fallo de red (servidor apagado) → respaldo local.

@@ -1,6 +1,7 @@
 import { type Event, EventStatus } from '../models';
 import { APP_CONFIG } from '../config/app.config';
 import { parseEventDate } from '../utils/date.utils';
+import { parseJsonResponse } from '../utils/http.utils';
 
 function isEventRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -76,7 +77,10 @@ export class EventService {
         `Error HTTP al obtener los eventos: status ${response.status} (${response.statusText})`,
       );
     }
-    const rawData: unknown = await response.json();
+    const rawData: unknown = await parseJsonResponse(
+      response,
+      'El servidor no respondió con un formato válido.',
+    );
     if (!Array.isArray(rawData)) {
       throw new Error(
         'La respuesta de eventos no tiene un formato válido (se esperaba un array).',
@@ -93,7 +97,10 @@ export class EventService {
         `Error HTTP al obtener los eventos de respaldo: status ${response.status}`,
       );
     }
-    const rawData: unknown = await response.json();
+    const rawData: unknown = await parseJsonResponse(
+      response,
+      'El servidor no respondió con un formato válido.',
+    );
     if (!Array.isArray(rawData)) {
       throw new Error(
         'La respuesta de eventos de respaldo no tiene un formato válido.',
