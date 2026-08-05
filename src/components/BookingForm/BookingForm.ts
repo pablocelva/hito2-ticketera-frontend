@@ -19,7 +19,7 @@ export function renderBookingForm(event?: Event): string {
     : '';
 
   return `
-    <section class="w-full bg-zinc-950 border border-zinc-800/90 rounded-xl p-5 md:p-6 shadow-xl relative overflow-hidden">
+    <section class="animate-fade-up w-full bg-zinc-950 border border-zinc-800/90 rounded-xl p-5 md:p-6 shadow-xl relative overflow-hidden">
       <div class="absolute top-0 right-0 w-32 h-32 bg-violet-600/10 rounded-full blur-2xl pointer-events-none"></div>
 
       <header class="mb-4">
@@ -101,7 +101,7 @@ function renderSuccessState(
   event: Event,
 ): void {
   sectionElement.innerHTML = `
-    <div class="text-center py-6 px-4 flex flex-col items-center gap-2">
+    <div class="animate-fade-up text-center py-6 px-4 flex flex-col items-center gap-2">
       ${renderIcon(CheckCircle2, 'w-10 h-10 text-emerald-400 mb-1')}
       <h3 class="text-lg font-black text-white uppercase tracking-tight">¡Reserva Confirmada!</h3>
       <p class="text-xs text-zinc-300 max-w-md">

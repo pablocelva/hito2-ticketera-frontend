@@ -77,9 +77,12 @@ export class EventBoardView {
 
     const gridEvents = EventService.getGridEvents(events);
     const fragment = document.createDocumentFragment();
-    gridEvents.forEach((event) => {
+    gridEvents.forEach((event, index) => {
       try {
-        fragment.appendChild(createEventCardElement(event));
+        const card = createEventCardElement(event);
+        card.classList.add('animate-fade-up');
+        card.style.animationDelay = `${index * 70}ms`;
+        fragment.appendChild(card);
       } catch (cardError) {
         console.error(`[Ticketera] Falló el renderizado del evento ID ${event.id}:`, cardError);
       }

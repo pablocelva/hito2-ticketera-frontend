@@ -7,7 +7,7 @@ import { Flame, Music, Calendar, Clock, MapPin, Ticket } from 'lucide';
 export function createFeaturedBannerElement(event: Event): HTMLElement {
   const container = document.createElement('section');
   container.className =
-    'w-full mb-6 rounded-xl overflow-hidden bg-zinc-950 border border-zinc-800 shadow-xl relative group';
+    'animate-fade-up w-full mb-6 rounded-xl overflow-hidden bg-zinc-950 border border-zinc-800 shadow-xl relative group';
 
   const imageUrl = event.imageUrl || '/images/placeholder.svg';
 

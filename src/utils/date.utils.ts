@@ -18,14 +18,18 @@ export function formatDate(date?: Date): string {
       return value;
     }
     if (typeof value === 'string' && value.trim() !== '') {
-      const iso = Date.parse(value);
-      if (!isNaN(iso)) {
-        return new Date(iso);
+      const trimmed = value.trim();
+      const isIso = /^\d{4}-\d{2}-\d{2}(T.*)?$/.test(trimmed);
+      if (isIso) {
+        const parsed = new Date(trimmed);
+        if (!isNaN(parsed.getTime())) {
+          return parsed;
+        }
       }
-      const parts = value.trim().split('-');
+      const parts = trimmed.split('-');
       if (parts.length === 3) {
         const [day, month, year] = parts.map(Number);
-        if (day > 0 && month > 0 && year > 0) {
+        if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 1900) {
           const parsed = new Date(year, month - 1, day);
           if (!isNaN(parsed.getTime())) {
             return parsed;

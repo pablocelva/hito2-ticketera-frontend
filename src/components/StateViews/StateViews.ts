@@ -4,7 +4,7 @@ export function createErrorStateElement(
   ): HTMLElement {
     const container = document.createElement('div');
     container.className =
-      'col-span-full text-center py-10 px-6 bg-zinc-950 border border-dashed border-violet-600/40 rounded-xl text-zinc-400';
+      'animate-fade-up col-span-full text-center py-10 px-6 bg-zinc-950 border border-dashed border-violet-600/40 rounded-xl text-zinc-400';
     container.innerHTML = `
       <h3 class="text-lg font-bold text-violet-400 mb-2 uppercase">¡Ups! Ocurrió un problema al cargar la cartelera.</h3>
       <p class="text-sm mb-4">${message}</p>
@@ -23,7 +23,7 @@ export function createErrorStateElement(
   export function createEmptyStateElement(): HTMLElement {
     const container = document.createElement('div');
     container.className =
-      'col-span-full text-center py-10 px-6 bg-zinc-950 border border-dashed border-zinc-800 rounded-xl text-zinc-400';
+      'animate-fade-up col-span-full text-center py-10 px-6 bg-zinc-950 border border-dashed border-zinc-800 rounded-xl text-zinc-400';
     container.innerHTML =
       '<p class="text-base font-bold uppercase">No hay eventos disponibles por el momento. ¡Vuelve pronto!</p>';
     return container;
