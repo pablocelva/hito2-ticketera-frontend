@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createBookingFormElement } from '../../src/components/BookingForm/BookingForm';
+import { createBookingFormElement, getEventDisplayName } from '../../src/components/BookingForm/BookingForm';
 import { BookingStatus, EventStatus, type Event, type Booking } from '../../src/models';
 
 vi.mock('../../src/services/booking.service', () => ({
@@ -138,6 +138,20 @@ describe('BookingForm Component', () => {
     expect(el.textContent).not.toContain('SELECCIONADO');
     const form = el.querySelector('#form-reserva') as HTMLFormElement | null;
     expect(form?.getAttribute('data-event-id')).toBe('');
+  });
+
+  it('debe mostrar el nombre del evento como "artista - evento" en la insignia', () => {
+    const el = createBookingFormElement(mockEvent);
+    expect(el.textContent).toContain('Los Sintetizadores - Noche Electrónica');
+  });
+
+  it('getEventDisplayName usa solo el título cuando no hay artista', () => {
+    const eventSinArtista: Event = {
+      ...mockEvent,
+      artist: '   ',
+    };
+    expect(getEventDisplayName(eventSinArtista)).toBe('Noche Electrónica');
+    expect(getEventDisplayName(mockEvent)).toBe('Los Sintetizadores - Noche Electrónica');
   });
 
   it('debe mostrar error cuando el email está vacío', () => {

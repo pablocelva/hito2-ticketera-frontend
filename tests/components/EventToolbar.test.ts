@@ -93,7 +93,7 @@ describe('EventToolbar', () => {
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_EVENT_FILTER, query: 'noche' });
   });
 
-  it('notifica los cambios de ciudad, estado y orden', () => {
+  it('acumula los cambios de ciudad, estado y orden sin sobreescribir', () => {
     const onChange = vi.fn();
     const el = createEventToolbarElement({
       cities: ['Santiago'],
@@ -115,8 +115,44 @@ describe('EventToolbar', () => {
     sortSelect!.dispatchEvent(new Event('change', { bubbles: true }));
 
     expect(onChange).toHaveBeenNthCalledWith(1, { ...EMPTY_EVENT_FILTER, city: 'Santiago' });
-    expect(onChange).toHaveBeenNthCalledWith(2, { ...EMPTY_EVENT_FILTER, status: EventStatus.ON_SALE });
-    expect(onChange).toHaveBeenNthCalledWith(3, { ...EMPTY_EVENT_FILTER, sort: 'price-desc' });
+    expect(onChange).toHaveBeenNthCalledWith(2, {
+      ...EMPTY_EVENT_FILTER,
+      city: 'Santiago',
+      status: EventStatus.ON_SALE,
+    });
+    expect(onChange).toHaveBeenNthCalledWith(3, {
+      ...EMPTY_EVENT_FILTER,
+      city: 'Santiago',
+      status: EventStatus.ON_SALE,
+      sort: 'price-desc',
+    });
+  });
+
+  it('mantiene el estado interno tras updateEventToolbarElement', () => {
+    const onChange = vi.fn();
+    const el = createEventToolbarElement({
+      cities: ['Santiago'],
+      statuses: [EventStatus.ON_SALE],
+      filter: EMPTY_EVENT_FILTER,
+      onChange,
+    });
+    updateEventToolbarElement(el, {
+      query: 'jazz',
+      city: 'Santiago',
+      status: 'all',
+      sort: 'date',
+    });
+
+    const statusSelect = el.querySelector('#filtro-estado') as HTMLSelectElement | null;
+    statusSelect!.value = 'ON_SALE';
+    statusSelect!.dispatchEvent(new Event('change', { bubbles: true }));
+
+    expect(onChange).toHaveBeenCalledWith({
+      query: 'jazz',
+      city: 'Santiago',
+      status: EventStatus.ON_SALE,
+      sort: 'date',
+    });
   });
 
   it('limpia todos los filtros con el botón Limpiar', () => {

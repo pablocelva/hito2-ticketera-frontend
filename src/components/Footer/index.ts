@@ -1,0 +1,1 @@
+export { createFooterElement } from './Footer';

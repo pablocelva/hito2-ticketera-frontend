@@ -1,6 +1,7 @@
 import './styles/global.css';
 import { EventService } from './services/event.service';
 import { EventBoardView } from './views/eventBoard.view';
+import { createFooterElement } from './components/Footer';
 import {
   applyEventFilter,
   getAvailableCities,
@@ -11,6 +12,9 @@ import { filterToQuery, queryToFilter } from './utils/url.filter.utils';
 
 async function bootstrap(): Promise<void> {
   const view = new EventBoardView();
+
+  const footerContainer = document.getElementById('contenedor-footer');
+  footerContainer?.replaceChildren(createFooterElement());
 
   try {
     // 1. Mostrar estado de carga (skeleton loaders)

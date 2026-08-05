@@ -2,9 +2,54 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/favicon.svg" />
+
+  <!-- SEO -->
   <title>Ticketera · Venta de Entradas para Eventos Independientes</title>
+  <meta name="description" content="Ticketera: venta de entradas en línea para la escena musical independiente (jazz, funk y neo-soul). Reserva tus entradas de forma segura y sin intermediarios." />
+  <meta name="keywords" content="ticketera, entradas, conciertos, eventos, música en vivo, jazz, funk, neo-soul, reservas en línea" />
+  <meta name="author" content="Pablo Lambert" />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <link rel="canonical" href="https://ticketera-hito-2.netlify.app/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Ticketera" />
+  <meta property="og:title" content="Ticketera · Venta de Entradas para Eventos Independientes" />
+  <meta property="og:description" content="Entradas directas del artista, sin intermediarios. Reserva tus entradas para la escena independiente." />
+  <meta property="og:url" content="https://ticketera-hito-2.netlify.app/" />
+  <meta property="og:locale" content="es_CL" />
+  <meta property="og:image" content="https://ticketera-hito-2.netlify.app/images/placeholder.svg" />
+  <meta property="og:image:width" content="400" />
+  <meta property="og:image:height" content="300" />
+  <meta property="og:image:alt" content="Ticketera — imagen de evento no disponible" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Ticketera · Venta de Entradas para Eventos Independientes" />
+  <meta name="twitter:description" content="Entradas directas del artista, sin intermediarios. Reserva tus entradas para la escena independiente." />
+  <meta name="twitter:image" content="https://ticketera-hito-2.netlify.app/images/placeholder.svg" />
+
+  <!-- Datos estructurados -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Ticketera",
+    "url": "https://ticketera-hito-2.netlify.app/",
+    "description": "Venta de entradas en línea para eventos musicales independientes.",
+    "inLanguage": "es-CL",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Ticketera"
+    }
+  }
+  </script>
 
   <!-- Prevenir parpadeo sin estilos (FOUC) -->
   <style>
@@ -56,11 +101,7 @@
       <div id="contenedor-reserva" class="mt-8"></div>
     </main>
 
-    <footer class="animate-fade-up mt-10 pt-5 border-t border-zinc-800/80 text-center">
-      <p class="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">
-        Ticketera
-      </p>
-    </footer>
+    <footer id="contenedor-footer"></footer>
   </div>
 
   <script type="module" src="/src/main.ts"></script>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" role="img" aria-label="Imagen no disponible">
+  <rect width="400" height="300" fill="#18181b"/>
+  <rect x="0.5" y="0.5" width="399" height="299" fill="none" stroke="#3f3f46" stroke-width="1"/>
+  <g fill="none" stroke="#71717a" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M120 90a24 24 0 0 1 0 48v16a16 16 0 0 0 16 16h128a16 16 0 0 0 16-16v-16a24 24 0 0 1 0-48V90a16 16 0 0 0-16-16H136a16 16 0 0 0-16 16Z"/>
+    <path d="M200 90v16"/>
+    <path d="M200 194v16"/>
+    <path d="M200 146v16"/>
+  </g>
+  <text x="200" y="245" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="4" fill="#52525b">SIN IMAGEN</text>
+</svg>

@@ -16,6 +16,20 @@ export interface EventToolbarConfig {
   onChange: (filter: EventFilter) => void;
 }
 
+const toolbarFilters = new WeakMap<HTMLElement, EventFilter>();
+
+function nextFilter(
+  toolbar: HTMLElement,
+  config: EventToolbarConfig,
+  patch: Partial<EventFilter>,
+): EventFilter {
+  // c8 ignore next -- la entrada siempre existe: se registra al crear el toolbar
+  const current = toolbarFilters.get(toolbar) ?? config.filter;
+  const next = { ...current, ...patch };
+  toolbarFilters.set(toolbar, next);
+  return next;
+}
+
 function buildCityOptions(cities: string[], current: string): string {
   const allSelected = current === 'all' ? ' selected' : '';
   const options = [
@@ -118,6 +132,8 @@ export function createEventToolbarElement(config: EventToolbarConfig): HTMLEleme
     throw new Error('No se pudo crear la barra de filtros.');
   }
 
+  toolbarFilters.set(sectionElement, config.filter);
+
   const searchInput = sectionElement.querySelector('#filtro-busqueda') as HTMLInputElement | null;
   const citySelect = sectionElement.querySelector('#filtro-ciudad') as HTMLSelectElement | null;
   const statusSelect = sectionElement.querySelector('#filtro-estado') as HTMLSelectElement | null;
@@ -133,24 +149,27 @@ export function createEventToolbarElement(config: EventToolbarConfig): HTMLEleme
     clearButton !== null
   ) {
     searchInput.addEventListener('input', () => {
-      config.onChange({ ...config.filter, query: searchInput.value });
+      config.onChange(nextFilter(sectionElement, config, { query: searchInput.value }));
     });
     citySelect.addEventListener('change', () => {
-      config.onChange({ ...config.filter, city: citySelect.value });
+      config.onChange(nextFilter(sectionElement, config, { city: citySelect.value }));
     });
     statusSelect.addEventListener('change', () => {
-      config.onChange({
-        ...config.filter,
-        status: statusSelect.value as EventStatus | 'all',
-      });
+      config.onChange(
+        nextFilter(sectionElement, config, {
+          status: statusSelect.value as EventStatus | 'all',
+        }),
+      );
     });
     sortSelect.addEventListener('change', () => {
-      config.onChange({
-        ...config.filter,
-        sort: sortSelect.value as SortCriterion,
-      });
+      config.onChange(
+        nextFilter(sectionElement, config, {
+          sort: sortSelect.value as SortCriterion,
+        }),
+      );
     });
     clearButton.addEventListener('click', () => {
+      toolbarFilters.set(sectionElement, EMPTY_EVENT_FILTER);
       config.onChange(EMPTY_EVENT_FILTER);
     });
   }
@@ -162,6 +181,7 @@ export function updateEventToolbarElement(
   toolbar: HTMLElement,
   filter: EventFilter,
 ): void {
+  toolbarFilters.set(toolbar, filter);
   const searchInput = toolbar.querySelector('#filtro-busqueda') as HTMLInputElement | null;
   const citySelect = toolbar.querySelector('#filtro-ciudad') as HTMLSelectElement | null;
   const statusSelect = toolbar.querySelector('#filtro-estado') as HTMLSelectElement | null;

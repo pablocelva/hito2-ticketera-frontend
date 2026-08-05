@@ -42,21 +42,36 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function readServerMessage(response: Response): Promise<string | undefined> {
+const SERVICE_UNAVAILABLE_MESSAGE =
+  'El servicio de reservas no está disponible en este momento. Inténtalo nuevamente.';
+
+interface ServerFailure {
+  isJsonApi: boolean;
+  serverMessage?: string;
+}
+
+async function readServerMessage(response: Response): Promise<ServerFailure> {
+  let raw: string;
   try {
-    const raw = await response.text();
-    const data = JSON.parse(raw) as unknown;
-    if (
-      isBookingRecord(data) &&
-      typeof data.error === 'string' &&
-      data.error.trim() !== ''
-    ) {
-      return data.error.trim();
-    }
+    raw = await response.text();
   } catch {
-    // cuerpo ilegible (no JSON) → sin mensaje del servidor
+    // Sin cuerpo (p. ej. un 502 del proxy) → no es una respuesta de nuestra API.
+    return { isJsonApi: false };
   }
-  return undefined;
+  let data: unknown;
+  try {
+    data = JSON.parse(raw) as unknown;
+  } catch {
+    // Cuerpo ilegible (p. ej. HTML de un host sin API) → no es nuestra API.
+    return { isJsonApi: false };
+  }
+  if (!isBookingRecord(data)) {
+    return { isJsonApi: true };
+  }
+  if (typeof data.error === 'string' && data.error.trim() !== '') {
+    return { isJsonApi: true, serverMessage: data.error.trim() };
+  }
+  return { isJsonApi: true };
 }
 
 function buildBookingErrorMessage(
@@ -73,7 +88,7 @@ function buildBookingErrorMessage(
     return 'No hay entradas suficientes para el evento seleccionado.';
   }
   if (status === 502 || status === 503 || status === 504) {
-    return 'El servicio de reservas no está disponible en este momento. Inténtalo nuevamente.';
+    return SERVICE_UNAVAILABLE_MESSAGE;
   }
   if (status >= 500) {
     return 'Ocurrió un error en el servidor al procesar la reserva. Inténtalo nuevamente.';
@@ -111,10 +126,13 @@ export class BookingService {
       });
 
       if (!response.ok) {
-        const serverMessage = await readServerMessage(response);
-        throw new Error(
-          buildBookingErrorMessage(response.status, serverMessage),
-        );
+        const { isJsonApi, serverMessage } = await readServerMessage(response);
+        // Una respuesta que no es nuestra API (HTML/404 de un host sin backend)
+        // NO significa "evento no encontrado": es el servicio de reservas caído.
+        if (!isJsonApi) {
+          throw new Error(SERVICE_UNAVAILABLE_MESSAGE);
+        }
+        throw new Error(buildBookingErrorMessage(response.status, serverMessage));
       }
 
       const rawData: unknown = await parseJsonResponse(

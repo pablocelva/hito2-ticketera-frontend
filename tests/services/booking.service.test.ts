@@ -48,7 +48,12 @@ describe('BookingService', () => {
   it('debe propagar los errores de negocio del servidor (409)', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({ ok: false, status: 409, statusText: 'Conflict' }),
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 409,
+        statusText: 'Conflict',
+        text: async () => JSON.stringify({ error: 'No hay entradas suficientes' }),
+      }),
     );
 
     await expect(BookingService.createBooking(payload, 0)).rejects.toThrow(
@@ -59,7 +64,12 @@ describe('BookingService', () => {
   it('debe mostrar un mensaje amigable para eventos inexistentes (404)', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({ ok: false, status: 404, statusText: 'Not Found' }),
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        text: async () => JSON.stringify({ error: 'Evento no encontrado' }),
+      }),
     );
 
     await expect(BookingService.createBooking(payload, 0)).rejects.toThrow(
@@ -70,7 +80,12 @@ describe('BookingService', () => {
   it('debe mostrar un mensaje amigable cuando el backend no está disponible (502)', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({ ok: false, status: 502, statusText: 'Bad Gateway' }),
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 502,
+        statusText: 'Bad Gateway',
+        text: async () => JSON.stringify({ error: 'Gateway' }),
+      }),
     );
 
     await expect(BookingService.createBooking(payload, 0)).rejects.toThrow(
@@ -83,7 +98,12 @@ describe('BookingService', () => {
     async (status) => {
       vi.stubGlobal(
         'fetch',
-        vi.fn().mockResolvedValue({ ok: false, status, statusText: 'Gateway' }),
+        vi.fn().mockResolvedValue({
+          ok: false,
+          status,
+          statusText: 'Gateway',
+          text: async () => JSON.stringify({ error: 'Gateway' }),
+        }),
       );
 
       await expect(BookingService.createBooking(payload, 0)).rejects.toThrow(
@@ -91,6 +111,24 @@ describe('BookingService', () => {
       );
     },
   );
+
+  it('debe tratar una respuesta cuyo cuerpo no puede leerse como servicio no disponible', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 503,
+        statusText: 'Service Unavailable',
+        text: async () => {
+          throw new Error('read failed');
+        },
+      }),
+    );
+
+    await expect(BookingService.createBooking(payload, 0)).rejects.toThrow(
+      'El servicio de reservas no está disponible',
+    );
+  });
 
   it('debe mostrar un mensaje amigable para payloads inválidos (400)', async () => {
     vi.stubGlobal(
@@ -115,6 +153,7 @@ describe('BookingService', () => {
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
+        text: async () => JSON.stringify({ error: 'Error interno' }),
       }),
     );
 
@@ -146,11 +185,28 @@ describe('BookingService', () => {
         ok: false,
         status: 429,
         statusText: 'Too Many Requests',
+        text: async () => JSON.stringify({}),
       }),
     );
 
     await expect(BookingService.createBooking(payload, 0)).rejects.toThrow(
       'No fue posible completar la reserva',
+    );
+  });
+
+  it('debe tratar una respuesta no-JSON (HTML de un host sin API) como servicio no disponible', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        text: async () => '<html><body>Not Found</body></html>',
+      }),
+    );
+
+    await expect(BookingService.createBooking(payload, 0)).rejects.toThrow(
+      'El servicio de reservas no está disponible',
     );
   });
 

@@ -5,13 +5,18 @@ import { isValidEmail, isWithinRange } from '../../utils/validation.utils';
 import { formatPrice } from '../../utils/currency.utils';
 import { Ticket, User, Mail, CheckCircle2, AlertCircle } from 'lucide';
 
+export function getEventDisplayName(event: Event): string {
+  const artist = event.artist.trim();
+  return artist !== '' ? `${artist} - ${event.title}` : event.title;
+}
+
 export function renderBookingForm(event?: Event): string {
   const eventBadge = event
     ? `
       <div class="mb-4 p-3 bg-zinc-900/90 border border-zinc-800 rounded-lg flex items-center justify-between gap-3">
         <div class="flex items-center gap-2 overflow-hidden">
           <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-violet-950 text-violet-300 border border-violet-800 shrink-0">SELECCIONADO</span>
-          <span class="text-xs font-bold text-white truncate">${event.title}</span>
+          <span class="text-xs font-bold text-white truncate">${getEventDisplayName(event)}</span>
         </div>
         <span class="text-xs font-semibold text-zinc-400 shrink-0">${formatPrice(event.price)} c/u</span>
       </div>
@@ -106,7 +111,7 @@ function renderSuccessState(
       <h3 class="text-lg font-black text-white uppercase tracking-tight">¡Reserva Confirmada!</h3>
       <p class="text-xs text-zinc-300 max-w-md">
         Se reservaron <strong class="text-white font-extrabold">${booking.quantity} entrada(s)</strong> para
-        <strong class="text-violet-400 font-bold">${event.title}</strong>.
+        <strong class="text-violet-400 font-bold">${getEventDisplayName(event)}</strong>.
       </p>
       <p class="text-[11px] text-zinc-400 mt-1">
         Total: <span class="text-zinc-200 font-semibold">${formatPrice(booking.totalPrice)}</span> ·

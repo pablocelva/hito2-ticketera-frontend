@@ -1,12 +1,16 @@
 # Ticketera · Frontend
 
-Plataforma interactiva de venta de entradas para eventos independientes (jazz y RnB del
-tour *Latam Tour 2026*): consulta la cartelera, explora el evento destacado y reserva
+Plataforma interactiva de venta de entradas para eventos independientes de Jazz y Rnb: consulta la cartelera, explora el evento destacado y reserva
 entradas en línea.
 
 Es el frontend del proyecto integrador iniciado en el **Hito 1** (core de dominio puro en
 Java). Este frontend consume un **mock API (Express)** y, si el servidor no está
 disponible, cae automáticamente a una fuente de datos local (`public/data/events.json`).
+
+## Links del proyecto
+
+- **Repositorio Hito 1:** [Link](https://github.com/pablocelva/hito1-ticketera)
+- **Despliegue en Netlify:** [Link](https://ticketera-hito-2.netlify.app/)
 
 ## Contexto: del Hito 1 (Java) a este frontend
 
@@ -47,7 +51,7 @@ hito2-ticketera-frontend/
 ├── index.html
 ├── mockapi/                  # backend simulado (Express + CORS), puerto 3100
 │   ├── package.json
-│   ├── data.js               # cartelera: Latam Tour 2026 (10 fechas, 4 ciudades de Chile)
+│   ├── data.js               # eventos cartelera
 │   └── server.js             # endpoints de eventos y reservas
 ├── public/
 │   ├── data/events.json      # fallback estático (fechas DD-MM-YYYY)
@@ -59,7 +63,7 @@ hito2-ticketera-frontend/
 │   ├── models/               # interfaces + enums (EventStatus, BookingStatus)
 │   ├── services/             # fetch asíncrono + parseo tipado + fallback
 │   ├── views/eventBoard.view.ts
-│   ├── components/           # EventCard, FeaturedBanner, BookingForm, skeletons, states
+│   ├── components/           # EventCard, FeaturedBanner, BookingForm, skeletons, states, EventToolbar, Footer
 │   ├── utils/                # fechas, moneda, iconos, validaciones
 │   └── styles/global.css     # tema y animaciones (Tailwind v4)
 └── tests/                    # utils, config, services, components, views
@@ -145,15 +149,20 @@ vivo) · `FINISHED` (finalizado) · `CANCELED` (cancelado)
   moneda (`es-CL`, CLP) y delay de red simulado (600 ms).
 - **`models/`** — interfaces y enums puros, sin lógica.
 - **`services/`** — capa asíncrona: `fetch` + `response.ok` + `try/catch` + parseo con
-  type guards (`unknown`, cero `any`) + estrategia de fallback.
-- **`views/`** — `EventBoardView` orquesta los estados: loading (skeletons), render,
-  vacío y error.
-- **`components/`** — piezas de UI: `EventCard`, `FeaturedBanner`, `BookingForm`,
-  `EventToolbar`, `LoadingSkeleton` y `StateViews`.
+  type guards (`unknown`, cero `any`) + estrategia de fallback (local y ante respuestas
+  no-JSON de un host sin API).
+- **`views/`** — `EventBoardView` orquesta los estados (loading, render, vacío, error),
+  crea/sincroniza la barra de filtros y maneja los clics en la grilla.
+- **`components/`** — piezas de UI generadas como templates dinámicos: `EventCard`,
+  `FeaturedBanner`, `BookingForm`, `EventToolbar`, `Footer`, `LoadingSkeleton` y
+  `StateViews`. `EventToolbar` guarda el filtro actual (WeakMap) para combinar controles
+  sin recrear el DOM y sin perder el foco del buscador.
 - **`utils/`** — fechas, moneda, iconos, validaciones (email, rango), filtros/orden de
-  eventos y serialización de filtros en la URL.
+  eventos (funciones puras) y serialización de filtros en la URL.
 - **`styles/`** — tema escenario (violeta/fucsia, Space Grotesk) y animación `fade-up`
   (respeta `prefers-reduced-motion`).
+- **`main.ts`** — bootstrap: lee los filtros desde la URL, re-renderiza la cartelera al
+  cambiar un filtro y actualiza la URL con `history.replaceState`.
 
 ## Flujo de datos
 
@@ -177,6 +186,9 @@ vivo) · `FINISHED` (finalizado) · `CANCELED` (cancelado)
   reserva local de respaldo; los errores de negocio (`4xx`/`5xx`) se propagan y se
   traducen a mensajes amigables para el usuario (p. ej. `502` → "El servicio de reservas
   no está disponible en este momento").
+- Si la respuesta de error **no es JSON** (p. ej. una página HTML con `404` de un host
+  estático sin API, como Netlify), se interpreta como "servicio de reservas no disponible"
+  y no como un evento inexistente.
 
 ## Scripts
 
@@ -190,7 +202,7 @@ vivo) · `FINISHED` (finalizado) · `CANCELED` (cancelado)
 
 ## Tests
 
-Suite actual: **17 archivos / 140 tests** en verde.
+Suite actual: **18 archivos / 148 tests** en verde.
 
 - `tests/utils/` — fechas (ISO y DD-MM-YYYY), moneda, validaciones, iconos, HTTP,
   filtros/orden de eventos y URL de filtros
@@ -198,7 +210,7 @@ Suite actual: **17 archivos / 140 tests** en verde.
 - `tests/services/` — `EventService` (parseo, `response.ok`, fallback) y `BookingService`
   (confirmación, 400/404/409/502/5xx, mensajes de servidor, respaldo local)
 - `tests/components/` — `BookingForm`, `EventCard`, `FeaturedBanner`, `EventToolbar`,
-  `StateViews`, `LoadingSkeleton`
+  `Footer`, `StateViews`, `LoadingSkeleton`
 - `tests/views/` — `EventBoardView` (loading, filtros, render, vacío, error, clics y
   guards nulos)
 
