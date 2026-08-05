@@ -149,18 +149,24 @@ vivo) · `FINISHED` (finalizado) · `CANCELED` (cancelado)
 - **`views/`** — `EventBoardView` orquesta los estados: loading (skeletons), render,
   vacío y error.
 - **`components/`** — piezas de UI: `EventCard`, `FeaturedBanner`, `BookingForm`,
-  `LoadingSkeleton` y `StateViews`.
-- **`utils/`** — fechas, moneda, iconos y validaciones (email, rango).
+  `EventToolbar`, `LoadingSkeleton` y `StateViews`.
+- **`utils/`** — fechas, moneda, iconos, validaciones (email, rango), filtros/orden de
+  eventos y serialización de filtros en la URL.
 - **`styles/`** — tema escenario (violeta/fucsia, Space Grotesk) y animación `fade-up`
   (respeta `prefers-reduced-motion`).
 
 ## Flujo de datos
 
 1. `main.ts` pide la cartelera a `EventService.getAllEvents()` (API → fallback JSON).
-2. `EventBoardView` muestra skeletons, el banner destacado (`isFeatured`) y la grilla.
-3. Al pulsar "Comprar Entradas" se preselecciona el evento en el formulario.
-4. `BookingForm` valida en el cliente y envía la reserva con `POST /api/v1/bookings`.
-5. Éxito → pantalla de confirmación con código y total. Error (409 agotado / 400 / 500 /
+2. `EventBoardView` muestra skeletons, la barra de filtros, el banner destacado
+   (`isFeatured`) y la grilla.
+3. Los filtros (búsqueda por texto, ciudad, estado) y el ordenamiento (fecha, precio,
+   nombre, disponibilidad) se aplican con funciones puras
+   (`src/utils/event.filter.utils.ts`) y se reflejan en la URL
+   (`?q=...&ciudad=...&estado=...&orden=...`).
+4. Al pulsar "Comprar Entradas" se preselecciona el evento en el formulario.
+5. `BookingForm` valida en el cliente y envía la reserva con `POST /api/v1/bookings`.
+6. Éxito → pantalla de confirmación con código y total. Error (409 agotado / 400 / 500 /
    502 backend caído / red) → mensaje amigable en pantalla.
 
 ## Estrategia de resiliencia
@@ -184,14 +190,17 @@ vivo) · `FINISHED` (finalizado) · `CANCELED` (cancelado)
 
 ## Tests
 
-Suite actual: **14 archivos / 108 tests** en verde.
+Suite actual: **17 archivos / 140 tests** en verde.
 
-- `tests/utils/` — fechas (ISO y DD-MM-YYYY), moneda, validaciones, iconos y HTTP
+- `tests/utils/` — fechas (ISO y DD-MM-YYYY), moneda, validaciones, iconos, HTTP,
+  filtros/orden de eventos y URL de filtros
 - `tests/config/` — configuración de la app
 - `tests/services/` — `EventService` (parseo, `response.ok`, fallback) y `BookingService`
   (confirmación, 400/404/409/502/5xx, mensajes de servidor, respaldo local)
-- `tests/components/` — `BookingForm`, `EventCard`, `FeaturedBanner`, `StateViews`, `LoadingSkeleton`
-- `tests/views/` — `EventBoardView` (loading, render, vacío, error, clics y guards nulos)
+- `tests/components/` — `BookingForm`, `EventCard`, `FeaturedBanner`, `EventToolbar`,
+  `StateViews`, `LoadingSkeleton`
+- `tests/views/` — `EventBoardView` (loading, filtros, render, vacío, error, clics y
+  guards nulos)
 
 > **Cobertura 100 %:** la suite alcanza 100 % en líneas, funciones, ramas y sentencias
 > (`pnpm run coverage`). El `exclude` ignora `src/main.ts`, los barrels `**/index.ts`

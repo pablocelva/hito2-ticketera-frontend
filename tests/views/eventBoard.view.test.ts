@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventBoardView } from '../../src/views/eventBoard.view';
 import { EventStatus, type Event } from '../../src/models';
+import { EMPTY_EVENT_FILTER } from '../../src/utils/event.filter.utils';
 
 vi.mock('../../src/components/FeaturedBanner/FeaturedBanner', () => ({
   createFeaturedBannerElement: vi.fn(),
@@ -11,14 +12,24 @@ vi.mock('../../src/components/EventCard', () => ({
 vi.mock('../../src/components/BookingForm', () => ({
   createBookingFormElement: vi.fn(),
 }));
+vi.mock('../../src/components/EventToolbar', () => ({
+  createEventToolbarElement: vi.fn(),
+  updateEventToolbarElement: vi.fn(),
+}));
 
 import { createFeaturedBannerElement } from '../../src/components/FeaturedBanner/FeaturedBanner';
 import { createEventCardElement } from '../../src/components/EventCard';
 import { createBookingFormElement } from '../../src/components/BookingForm';
+import {
+  createEventToolbarElement,
+  updateEventToolbarElement,
+} from '../../src/components/EventToolbar';
 
 const bannerMock = vi.mocked(createFeaturedBannerElement);
 const cardMock = vi.mocked(createEventCardElement);
 const formMock = vi.mocked(createBookingFormElement);
+const toolbarCreateMock = vi.mocked(createEventToolbarElement);
+const toolbarUpdateMock = vi.mocked(updateEventToolbarElement);
 
 function buildEvent(overrides: Partial<Event> = {}): Event {
   return {
@@ -41,7 +52,7 @@ function buildEvent(overrides: Partial<Event> = {}): Event {
 const featuredEvent = buildEvent({ id: 'evt-f', title: 'Destacado', isFeatured: true });
 const normalEvent = buildEvent({ id: 'evt-2', title: 'Normal' });
 
-const IDS = ['contenedor-banner', 'contenedor-cartelera', 'contador-fechas', 'contenedor-reserva'];
+const IDS = ['contenedor-banner', 'contenedor-cartelera', 'contador-fechas', 'contenedor-reserva', 'contenedor-filtros'];
 
 function setDom(ids: string[]): void {
   document.body.innerHTML = ids.map((id) => `<div id="${id}"></div>`).join('');
@@ -96,6 +107,12 @@ describe('EventBoardView', () => {
       section.className = 'form';
       return section;
     });
+    toolbarCreateMock.mockImplementation(() => {
+      const section = document.createElement('section');
+      section.className = 'toolbar';
+      return section;
+    });
+    toolbarUpdateMock.mockImplementation(() => undefined);
     HTMLElement.prototype.scrollIntoView = vi.fn();
   });
 
@@ -112,6 +129,7 @@ describe('EventBoardView', () => {
     expect(getEl('contenedor-banner').firstElementChild?.classList.contains('animate-pulse')).toBe(true);
     expect(getEl('contenedor-cartelera').children.length).toBe(6);
     expect(getEl('contenedor-reserva').children.length).toBe(0);
+    expect(getEl('contenedor-filtros').children.length).toBe(0);
   });
 
   it('showEmpty muestra el estado vacío', () => {
@@ -143,6 +161,44 @@ describe('EventBoardView', () => {
     const view = new EventBoardView();
     view.showError('msg');
     expect(getEl('contenedor-cartelera').querySelector('button')).toBeNull();
+  });
+
+  it('renderFilterBar crea la barra cuando el contenedor está vacío', () => {
+    setDom(IDS);
+    const view = new EventBoardView();
+    const onChange = vi.fn();
+    view.renderFilterBar(
+      ['Santiago'],
+      [EventStatus.ON_SALE],
+      EMPTY_EVENT_FILTER,
+      onChange,
+    );
+
+    expect(toolbarCreateMock).toHaveBeenCalledWith({
+      cities: ['Santiago'],
+      statuses: [EventStatus.ON_SALE],
+      filter: EMPTY_EVENT_FILTER,
+      onChange,
+    });
+    expect(getEl('contenedor-filtros').children.length).toBe(1);
+  });
+
+  it('renderFilterBar reutiliza la barra y sincroniza el filtro', () => {
+    setDom(IDS);
+    const view = new EventBoardView();
+    view.renderFilterBar(['Santiago'], [EventStatus.ON_SALE], EMPTY_EVENT_FILTER, vi.fn());
+    view.renderFilterBar(['Santiago'], [EventStatus.ON_SALE], { ...EMPTY_EVENT_FILTER, query: 'x' }, vi.fn());
+
+    expect(toolbarCreateMock).toHaveBeenCalledTimes(1);
+    expect(toolbarUpdateMock).toHaveBeenCalledTimes(1);
+    expect(getEl('contenedor-filtros').children.length).toBe(1);
+  });
+
+  it('renderFilterBar no hace nada sin contenedor de filtros', () => {
+    setDom(['contenedor-banner', 'contenedor-cartelera', 'contador-fechas', 'contenedor-reserva']);
+    const view = new EventBoardView();
+    view.renderFilterBar([], [], EMPTY_EVENT_FILTER, vi.fn());
+    expect(toolbarCreateMock).not.toHaveBeenCalled();
   });
 
   it('renderEvents pinta contador, banner, grilla y formulario', () => {
@@ -178,6 +234,10 @@ describe('EventBoardView', () => {
     view.renderEvents([]);
 
     expect(getEl('contador-fechas').textContent).toContain('0 Eventos Confirmados');
+    expect(getEl('contenedor-banner').children.length).toBe(0);
+    expect(getEl('contenedor-cartelera').textContent).toContain(
+      'No hay eventos disponibles',
+    );
     expect(bannerMock).not.toHaveBeenCalled();
     expect(cardMock).not.toHaveBeenCalled();
     expect(formMock).toHaveBeenCalledWith(undefined);
@@ -336,10 +396,17 @@ describe('EventBoardView', () => {
   it('funciona si solo existe #contenedor-cartelera', () => {
     setDom(['contenedor-cartelera']);
     const view = new EventBoardView();
+    const cartelera = getEl('contenedor-cartelera');
+    const handlers = captureClickHandlers(cartelera);
     view.renderEvents([featuredEvent, normalEvent]);
 
-    expect(getEl('contenedor-cartelera').querySelectorAll('.card').length).toBe(1);
+    expect(cartelera.querySelectorAll('.card').length).toBe(1);
     expect(bannerMock).not.toHaveBeenCalled();
+    expect(formMock).not.toHaveBeenCalled();
+
+    const target = document.createElement('div');
+    cartelera.appendChild(target);
+    handlers[0]({ target } as unknown as PointerEvent);
     expect(formMock).not.toHaveBeenCalled();
   });
 });

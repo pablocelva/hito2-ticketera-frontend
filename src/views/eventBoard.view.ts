@@ -1,4 +1,4 @@
-import type { Event } from '../models';
+import type { Event, EventStatus } from '../models';
 import { EventService } from '../services/event.service';
 import { createEventCardElement } from '../components/EventCard';
 import { createFeaturedBannerElement } from '../components/FeaturedBanner/FeaturedBanner';
@@ -11,24 +11,34 @@ import {
   createEmptyStateElement,
 } from '../components/StateViews/StateViews';
 import { createBookingFormElement } from '../components/BookingForm';
+import {
+  createEventToolbarElement,
+  updateEventToolbarElement,
+} from '../components/EventToolbar';
+import type { EventFilter } from '../utils/event.filter.utils';
 
 export class EventBoardView {
   private bannerContainer: HTMLElement | null;
   private carteleraContainer: HTMLElement | null;
   private contadorContainer: HTMLElement | null;
   private bookingContainer: HTMLElement | null;
+  private filterContainer: HTMLElement | null;
 
   constructor() {
     this.bannerContainer = document.getElementById('contenedor-banner');
     this.carteleraContainer = document.getElementById('contenedor-cartelera');
     this.contadorContainer = document.getElementById('contador-fechas');
     this.bookingContainer = document.getElementById('contenedor-reserva');
+    this.filterContainer = document.getElementById('contenedor-filtros');
   }
 
   showLoading(): void {
     if (this.contadorContainer !== null) {
       this.contadorContainer.innerHTML =
         '<span class="text-[11px] font-extrabold uppercase tracking-wider text-zinc-300">Cargando fechas...</span>';
+    }
+    if (this.filterContainer !== null) {
+      this.filterContainer.replaceChildren();
     }
     if (this.bannerContainer !== null) {
       this.bannerContainer.replaceChildren(createBannerSkeletonElement());
@@ -38,6 +48,23 @@ export class EventBoardView {
     }
     if (this.bookingContainer !== null) {
       this.bookingContainer.replaceChildren();
+    }
+  }
+
+  renderFilterBar(
+    cities: string[],
+    statuses: EventStatus[],
+    filter: EventFilter,
+    onChange: (filter: EventFilter) => void,
+  ): void {
+    if (this.filterContainer === null) return;
+    const toolbar = this.filterContainer.firstElementChild as HTMLElement | null;
+    if (toolbar === null) {
+      this.filterContainer.replaceChildren(
+        createEventToolbarElement({ cities, statuses, filter, onChange }),
+      );
+    } else {
+      updateEventToolbarElement(toolbar, filter);
     }
   }
 
@@ -66,28 +93,36 @@ export class EventBoardView {
 
     const featuredEvent = EventService.getFeaturedEvent(events);
 
-    if (this.bannerContainer !== null && featuredEvent !== null) {
-      try {
-        this.bannerContainer.replaceChildren(createFeaturedBannerElement(featuredEvent));
-      } catch (bannerError) {
-        console.error('[Ticketera] Error al renderizar banner destacado:', bannerError);
+    if (this.bannerContainer !== null) {
+      if (featuredEvent === null) {
         this.bannerContainer.replaceChildren();
+      } else {
+        try {
+          this.bannerContainer.replaceChildren(createFeaturedBannerElement(featuredEvent));
+        } catch (bannerError) {
+          console.error('[Ticketera] Error al renderizar banner destacado:', bannerError);
+          this.bannerContainer.replaceChildren();
+        }
       }
     }
 
-    const gridEvents = EventService.getGridEvents(events);
-    const fragment = document.createDocumentFragment();
-    gridEvents.forEach((event, index) => {
-      try {
-        const card = createEventCardElement(event);
-        card.classList.add('animate-fade-up');
-        card.style.animationDelay = `${index * 70}ms`;
-        fragment.appendChild(card);
-      } catch (cardError) {
-        console.error(`[Ticketera] Falló el renderizado del evento ID ${event.id}:`, cardError);
-      }
-    });
-    this.carteleraContainer.replaceChildren(fragment);
+    if (events.length === 0) {
+      this.carteleraContainer.replaceChildren(createEmptyStateElement());
+    } else {
+      const gridEvents = EventService.getGridEvents(events);
+      const fragment = document.createDocumentFragment();
+      gridEvents.forEach((event, index) => {
+        try {
+          const card = createEventCardElement(event);
+          card.classList.add('animate-fade-up');
+          card.style.animationDelay = `${index * 70}ms`;
+          fragment.appendChild(card);
+        } catch (cardError) {
+          console.error(`[Ticketera] Falló el renderizado del evento ID ${event.id}:`, cardError);
+        }
+      });
+      this.carteleraContainer.replaceChildren(fragment);
+    }
 
     this.renderBookingForm(featuredEvent ?? undefined);
     this.setupBookingListeners(events, featuredEvent);
@@ -137,6 +172,9 @@ export class EventBoardView {
     if (this.contadorContainer !== null) {
       this.contadorContainer.innerHTML = '<span>0 Eventos Confirmados</span>';
     }
+    if (this.filterContainer !== null) {
+      this.filterContainer.replaceChildren();
+    }
     if (this.bannerContainer !== null) {
       this.bannerContainer.replaceChildren();
     }
@@ -151,6 +189,9 @@ export class EventBoardView {
   showError(message: string, onRetry?: () => void): void {
     if (this.contadorContainer !== null) {
       this.contadorContainer.innerHTML = '<span>0 Eventos Confirmados</span>';
+    }
+    if (this.filterContainer !== null) {
+      this.filterContainer.replaceChildren();
     }
     if (this.bannerContainer !== null) {
       this.bannerContainer.replaceChildren();

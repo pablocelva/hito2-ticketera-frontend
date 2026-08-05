@@ -1,6 +1,13 @@
 import './styles/global.css';
 import { EventService } from './services/event.service';
 import { EventBoardView } from './views/eventBoard.view';
+import {
+  applyEventFilter,
+  getAvailableCities,
+  getAvailableStatuses,
+  type EventFilter,
+} from './utils/event.filter.utils';
+import { filterToQuery, queryToFilter } from './utils/url.filter.utils';
 
 async function bootstrap(): Promise<void> {
   const view = new EventBoardView();
@@ -18,8 +25,34 @@ async function bootstrap(): Promise<void> {
       return;
     }
 
-    // 4. Renderizado exitoso
-    view.renderEvents(events);
+    // 4. Filtros iniciales desde la URL (?q=...&ciudad=...&estado=...&orden=...)
+    let filter: EventFilter = queryToFilter(window.location.search);
+
+    const updateUrl = (next: EventFilter): void => {
+      const query = filterToQuery(next);
+      const url = query === '' ? window.location.pathname : `?${query}`;
+      window.history.replaceState(null, '', url);
+    };
+
+    const render = (): void => {
+      const visible = applyEventFilter(events, filter);
+
+      view.renderFilterBar(
+        getAvailableCities(events),
+        getAvailableStatuses(events),
+        filter,
+        (nextFilter) => {
+          filter = nextFilter;
+          updateUrl(filter);
+          render();
+        },
+      );
+
+      view.renderEvents(visible);
+    };
+
+    // 5. Renderizado exitoso
+    render();
   } catch (error) {
     console.error('[Ticketera] Error crítico durante la inicialización:', error);
     view.showError(
