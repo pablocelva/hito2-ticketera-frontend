@@ -189,6 +189,7 @@ export function createEventCardElement(event: Event): HTMLElement {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = generateEventCardHtml(event).trim();
     const element = tempDiv.firstElementChild as HTMLElement | null;
+    // c8 ignore next 2 -- guardia inalcanzable: el HTML siempre genera un elemento
     if (!element) {
       throw new Error('No se pudo generar la tarjeta del evento.');
     }

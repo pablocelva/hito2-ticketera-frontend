@@ -13,30 +13,31 @@ const payload: CreateBookingRequest = {
   unitPrice: 45000,
 };
 
+function okResponse(): { ok: true; status: number; json: () => Promise<object> } {
+  return {
+    ok: true,
+    status: 201,
+    json: async () => ({
+      id: 'bk-1',
+      eventId: 'evt-1',
+      customerName: 'Ana',
+      customerEmail: 'fan@correo.com',
+      quantity: 2,
+      unitPrice: 45000,
+      totalPrice: 90000,
+      status: 'CONFIRMED',
+      createdAt: '2026-08-04T12:00:00Z',
+    }),
+  };
+}
+
 describe('BookingService', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
   it('debe crear una reserva confirmada vía POST', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 201,
-        json: async () => ({
-          id: 'bk-1',
-          eventId: 'evt-1',
-          customerName: 'Ana',
-          customerEmail: 'fan@correo.com',
-          quantity: 2,
-          unitPrice: 45000,
-          totalPrice: 90000,
-          status: 'CONFIRMED',
-          createdAt: '2026-08-04T12:00:00Z',
-        }),
-      }),
-    );
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okResponse()));
 
     const booking = await BookingService.createBooking(payload, 0);
 
@@ -55,6 +56,17 @@ describe('BookingService', () => {
     );
   });
 
+  it('debe mostrar un mensaje amigable para eventos inexistentes (404)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, status: 404, statusText: 'Not Found' }),
+    );
+
+    await expect(BookingService.createBooking(payload, 0)).rejects.toThrow(
+      'ya no está disponible para reservar',
+    );
+  });
+
   it('debe mostrar un mensaje amigable cuando el backend no está disponible (502)', async () => {
     vi.stubGlobal(
       'fetch',
@@ -65,6 +77,20 @@ describe('BookingService', () => {
       'El servicio de reservas no está disponible',
     );
   });
+
+  it.each([503, 504])(
+    'debe mostrar un mensaje amigable si el gateway responde %s',
+    async (status) => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({ ok: false, status, statusText: 'Gateway' }),
+      );
+
+      await expect(BookingService.createBooking(payload, 0)).rejects.toThrow(
+        'El servicio de reservas no está disponible',
+      );
+    },
+  );
 
   it('debe mostrar un mensaje amigable para payloads inválidos (400)', async () => {
     vi.stubGlobal(
@@ -80,6 +106,108 @@ describe('BookingService', () => {
     await expect(BookingService.createBooking(payload, 0)).rejects.toThrow(
       'Los datos enviados no son válidos',
     );
+  });
+
+  it('debe mostrar un mensaje amigable para errores 5xx', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      }),
+    );
+
+    await expect(BookingService.createBooking(payload, 0)).rejects.toThrow(
+      'Ocurrió un error en el servidor',
+    );
+  });
+
+  it('debe usar el mensaje del servidor para estados inesperados', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 418,
+        statusText: "I'm a teapot",
+        text: async () => JSON.stringify({ error: 'Soy una tetera' }),
+      }),
+    );
+
+    await expect(BookingService.createBooking(payload, 0)).rejects.toThrow(
+      'Soy una tetera',
+    );
+  });
+
+  it('debe usar un mensaje genérico si el servidor no entrega detalle', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests',
+      }),
+    );
+
+    await expect(BookingService.createBooking(payload, 0)).rejects.toThrow(
+      'No fue posible completar la reserva',
+    );
+  });
+
+  it('debe ignorar mensajes de servidor vacíos o sin estructura esperada', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests',
+        text: async () => JSON.stringify({ error: '' }),
+      }),
+    );
+
+    await expect(BookingService.createBooking(payload, 0)).rejects.toThrow(
+      'No fue posible completar la reserva',
+    );
+  });
+
+  it('debe ignorar cuerpos de error que no sean objetos', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests',
+        text: async () => JSON.stringify([1, 2, 3]),
+      }),
+    );
+
+    await expect(BookingService.createBooking(payload, 0)).rejects.toThrow(
+      'No fue posible completar la reserva',
+    );
+  });
+
+  it('debe ignorar mensajes de servidor que no sean strings', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests',
+        text: async () => JSON.stringify({ error: 42 }),
+      }),
+    );
+
+    await expect(BookingService.createBooking(payload, 0)).rejects.toThrow(
+      'No fue posible completar la reserva',
+    );
+  });
+
+  it('debe respetar el delay simulado cuando es mayor a cero', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okResponse()));
+
+    const booking = await BookingService.createBooking(payload, 1);
+
+    expect(booking.status).toBe(BookingStatus.CONFIRMED);
   });
 
   it('debe generar una reserva local de respaldo cuando la red falla', async () => {
@@ -107,6 +235,30 @@ describe('BookingService', () => {
       createdAt: '2026-01-01T00:00:00Z',
     });
 
+    expect(booking.status).toBe(BookingStatus.PENDING);
+    expect(booking.createdAt).toBeInstanceOf(Date);
+  });
+
+  it('parseBooking debe rechazar valores que no sean objetos', () => {
+    expect(() => parseBooking(null)).toThrow('Reserva inválida');
+    expect(() => parseBooking([1, 2])).toThrow('Reserva inválida');
+    expect(() => parseBooking('texto')).toThrow('Reserva inválida');
+  });
+
+  it('parseBooking debe aplicar valores por defecto y normalizar estados', () => {
+    const booking = parseBooking({
+      id: ' ',
+      status: 'RANDOM',
+      createdAt: 42,
+    });
+
+    expect(booking.id).toBe('desconocido');
+    expect(booking.eventId).toBe('');
+    expect(booking.customerName).toBe('');
+    expect(booking.customerEmail).toBe('');
+    expect(booking.quantity).toBe(0);
+    expect(booking.unitPrice).toBe(0);
+    expect(booking.totalPrice).toBe(0);
     expect(booking.status).toBe(BookingStatus.PENDING);
     expect(booking.createdAt).toBeInstanceOf(Date);
   });

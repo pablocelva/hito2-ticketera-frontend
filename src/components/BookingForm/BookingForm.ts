@@ -139,6 +139,7 @@ export function createBookingFormElement(
   const container = document.createElement('div');
   container.innerHTML = renderBookingForm(event).trim();
   const sectionElement = container.firstElementChild as HTMLElement | null;
+  // c8 ignore next 2 -- guardia inalcanzable: renderBookingForm siempre genera un <section>
   if (!sectionElement) {
     throw new Error('No se pudo crear el formulario de reserva.');
   }
@@ -152,12 +153,14 @@ export function createBookingFormElement(
   const submitButton = sectionElement.querySelector('#btn-reservar') as HTMLButtonElement | null;
 
   const showError = (msg: string): void => {
+    // c8 ignore next -- guardia inalcanzable: el listener solo existe si errorBlock no es null
     if (errorBlock === null) return;
     errorBlock.innerHTML = `${renderIcon(AlertCircle, 'w-4 h-4 shrink-0 text-red-400')}<span>${msg}</span>`;
     errorBlock.classList.remove('hidden');
   };
 
   const setSubmitting = (submitting: boolean): void => {
+    // c8 ignore next -- guardia inalcanzable: el formulario siempre incluye #btn-reservar
     if (submitButton === null) return;
     submitButton.disabled = submitting;
     submitButton.innerHTML = submitting
@@ -165,13 +168,8 @@ export function createBookingFormElement(
       : `${renderIcon(Ticket, 'w-4 h-4')}<span>Reservar</span>`;
   };
 
-  if (
-    form !== null &&
-    nameInput !== null &&
-    emailInput !== null &&
-    quantityInput !== null &&
-    errorBlock !== null
-  ) {
+  // c8 ignore next -- guardia inalcanzable: renderBookingForm siempre emite todos los campos
+  if (form !== null && nameInput !== null && emailInput !== null && quantityInput !== null && errorBlock !== null) {
     form.addEventListener('submit', async (formEvent: SubmitEvent) => {
       // 1. Neutralizar el envío nativo del navegador (primera instrucción)
       formEvent.preventDefault();

@@ -21,7 +21,13 @@ export default defineConfig({
         branches: 100,
         statements: 100,
       },
-      exclude: ['src/main.ts', 'vite.config.ts', '**/node_modules/**', '**/dist/**'],
+      exclude: [
+        'src/main.ts',
+        'vite.config.ts',
+        '**/index.ts',
+        '**/node_modules/**',
+        '**/dist/**',
+      ],
     },
   },
 });

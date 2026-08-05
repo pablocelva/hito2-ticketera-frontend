@@ -124,6 +124,7 @@ export class EventBoardView {
       }
     };
 
+    // c8 ignore next 2 -- carteleraContainer siempre es no-null aquí (renderEvents retorna antes si no existe)
     if (this.carteleraContainer !== null) {
       this.carteleraContainer.addEventListener('click', handleTicketClick);
     }

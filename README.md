@@ -62,7 +62,7 @@ hito2-ticketera-frontend/
 │   ├── components/           # EventCard, FeaturedBanner, BookingForm, skeletons, states
 │   ├── utils/                # fechas, moneda, iconos, validaciones
 │   └── styles/global.css     # tema y animaciones (Tailwind v4)
-└── tests/                    # utils, config, services, components
+└── tests/                    # utils, config, services, components, views
 ```
 
 ## Instalación y ejecución
@@ -184,18 +184,19 @@ vivo) · `FINISHED` (finalizado) · `CANCELED` (cancelado)
 
 ## Tests
 
-Suite actual: **8 archivos / 30 tests** en verde.
+Suite actual: **14 archivos / 108 tests** en verde.
 
-- `tests/utils/` — fechas (ISO y DD-MM-YYYY), moneda, validaciones
+- `tests/utils/` — fechas (ISO y DD-MM-YYYY), moneda, validaciones, iconos y HTTP
 - `tests/config/` — configuración de la app
 - `tests/services/` — `EventService` (parseo, `response.ok`, fallback) y `BookingService`
-  (confirmación, 409, 400, 502 backend caído, respaldo local)
-- `tests/components/` — `BookingForm` (validación, envío, error, éxito)
+  (confirmación, 400/404/409/502/5xx, mensajes de servidor, respaldo local)
+- `tests/components/` — `BookingForm`, `EventCard`, `FeaturedBanner`, `StateViews`, `LoadingSkeleton`
+- `tests/views/` — `EventBoardView` (loading, render, vacío, error, clics y guards nulos)
 
-> **Nota sobre cobertura:** `vite.config.ts` define umbral 100 % en líneas, funciones,
-> ramas y sentencias. La suite actual cubre utils, config, servicios y `BookingForm`
-> (~86 % de líneas); los tests de `EventCard`, `FeaturedBanner`, `StateViews`,
-> `LoadingSkeleton` y la vista son el trabajo pendiente para alcanzar el umbral.
+> **Cobertura 100 %:** la suite alcanza 100 % en líneas, funciones, ramas y sentencias
+> (`pnpm run coverage`). El `exclude` ignora `src/main.ts`, los barrels `**/index.ts`
+> y archivos de config/build. Unas pocas guardias de nulidad son inalcanzables por
+> diseño y están documentadas con `/* c8 ignore */` en el código.
 
 ## Personalización de datos
 

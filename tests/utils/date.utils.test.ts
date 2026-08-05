@@ -1,7 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { formatDate, parseEventDate } from '../../src/utils/date.utils';
 
 describe('date.utils', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('formatea fechas válidas en español', () => {
     expect(formatDate(new Date('2026-09-12T21:00:00'))).toContain('12 de septiembre');
   });
@@ -9,6 +13,13 @@ describe('date.utils', () => {
   it('devuelve texto por defecto para fechas inválidas', () => {
     expect(formatDate(undefined)).toBe('Fecha por confirmar');
     expect(formatDate(new Date('fecha-invalida'))).toBe('Fecha por confirmar');
+  });
+
+  it('devuelve texto por defecto si el formateo falla', () => {
+    vi.spyOn(Date.prototype, 'toLocaleDateString').mockImplementationOnce(() => {
+      throw new Error('locale');
+    });
+    expect(formatDate(new Date('2026-09-12T21:00:00'))).toBe('Fecha por confirmar');
   });
 
   it('parsea fechas ISO y DD-MM-YYYY', () => {
@@ -20,7 +31,29 @@ describe('date.utils', () => {
     expect(dd.getMonth()).toBe(8);
   });
 
+  it('retorna el mismo objeto Date si ya es una instancia válida', () => {
+    const date = new Date('2026-09-12T21:00:00');
+    expect(parseEventDate(date)).toBe(date);
+  });
+
   it('retorna una fecha de respaldo ante un valor inválido', () => {
     expect(parseEventDate('no-es-fecha')).toBeInstanceOf(Date);
+  });
+
+  it('retorna una fecha de respaldo si el valor no es Date ni string', () => {
+    expect(parseEventDate(42)).toBeInstanceOf(Date);
+    expect(parseEventDate(undefined)).toBeInstanceOf(Date);
+  });
+
+  it('retorna una fecha de respaldo si la fecha ISO es inválida', () => {
+    expect(parseEventDate('2026-13-99')).toBeInstanceOf(Date);
+  });
+
+  it('retorna una fecha de respaldo si el formato no tiene tres partes', () => {
+    expect(parseEventDate('12-09')).toBeInstanceOf(Date);
+  });
+
+  it('retorna una fecha de respaldo si la fecha DD-MM-YYYY es inválida', () => {
+    expect(parseEventDate('10-05-1e999')).toBeInstanceOf(Date);
   });
 });

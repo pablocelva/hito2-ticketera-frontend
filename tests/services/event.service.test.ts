@@ -114,8 +114,46 @@ describe('EventService', () => {
     await expect(EventService.getAllEvents(0)).rejects.toThrow();
   });
 
+  it('debe lanzar error si el respaldo devuelve un cuerpo inválido', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn()
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ error: 'x' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ nope: true }) }),
+    );
+
+    await expect(EventService.getAllEvents(0)).rejects.toThrow(
+      'respaldo no tiene un formato válido',
+    );
+  });
+
+  it('debe respetar el delay simulado cuando es mayor a cero', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: async () => rawEvents }),
+    );
+
+    const events = await EventService.getAllEvents(1);
+
+    expect(events).toHaveLength(2);
+  });
+
   it('parseEvent debe rechazar entradas que no sean objetos', () => {
     expect(() => parseEvent(null)).toThrow('se esperaba un objeto');
+  });
+
+  it('getFeaturedEvent prioriza el evento destacado', () => {
+    const featured = buildEvent({ id: 'evt-f', isFeatured: true });
+    const normal = buildEvent({ id: 'evt-n' });
+    expect(EventService.getFeaturedEvent([normal, featured])?.id).toBe('evt-f');
+  });
+
+  it('getGridEvents excluye el destacado cuando hay más de un evento', () => {
+    const featured = buildEvent({ id: 'evt-f', isFeatured: true });
+    const normal = buildEvent({ id: 'evt-n' });
+    const grid = EventService.getGridEvents([featured, normal]);
+    expect(grid).toHaveLength(1);
+    expect(grid[0].id).toBe('evt-n');
   });
 
   it('debe calcular disponibilidad y featured/grid', () => {

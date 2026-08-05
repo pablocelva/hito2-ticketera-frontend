@@ -132,4 +132,112 @@ describe('BookingForm Component', () => {
     expect(errorBlock?.classList.contains('hidden')).toBe(false);
     expect(errorBlock?.textContent).toContain('No hay entradas suficientes');
   });
+
+  it('debe omitir la insignia del evento cuando no hay evento seleccionado', () => {
+    const el = createBookingFormElement();
+    expect(el.textContent).not.toContain('SELECCIONADO');
+    const form = el.querySelector('#form-reserva') as HTMLFormElement | null;
+    expect(form?.getAttribute('data-event-id')).toBe('');
+  });
+
+  it('debe mostrar error cuando el email está vacío', () => {
+    const el = createBookingFormElement(mockEvent);
+    fillInputs(el, { name: 'Ana', quantity: '2' });
+    submitForm(el);
+
+    const errorBlock = el.querySelector('#bloque-error') as HTMLElement | null;
+    expect(errorBlock?.textContent).toContain('El correo electrónico es requerido.');
+  });
+
+  it('debe mostrar error cuando la cantidad está vacía', () => {
+    const el = createBookingFormElement(mockEvent);
+    fillInputs(el, { name: 'Ana', email: 'fan@correo.com' });
+    submitForm(el);
+
+    const errorBlock = el.querySelector('#bloque-error') as HTMLElement | null;
+    expect(errorBlock?.textContent).toContain('Ingresa la cantidad de entradas.');
+  });
+
+  it('debe mostrar error cuando la cantidad no es un número', () => {
+    const el = createBookingFormElement(mockEvent);
+    fillInputs(el, { name: 'Ana', email: 'fan@correo.com', quantity: 'abc' });
+    submitForm(el);
+
+    const errorBlock = el.querySelector('#bloque-error') as HTMLElement | null;
+    expect(errorBlock?.textContent).toContain('Ingresa la cantidad de entradas.');
+  });
+
+  it('debe pedir seleccionar un evento si no hay evento', () => {
+    const el = createBookingFormElement();
+    fillInputs(el, { name: 'Ana', email: 'fan@correo.com', quantity: '2' });
+    submitForm(el);
+
+    const errorBlock = el.querySelector('#bloque-error') as HTMLElement | null;
+    expect(errorBlock?.textContent).toContain('Selecciona un evento para reservar.');
+  });
+
+  it('debe confirmar sin callback de éxito cuando no se provee', async () => {
+    mockedCreateBooking.mockResolvedValue({
+      id: 'bk-9',
+      eventId: 'evt-1',
+      customerName: 'Ana',
+      customerEmail: 'fan@correo.com',
+      quantity: 2,
+      unitPrice: 45000,
+      totalPrice: 90000,
+      status: BookingStatus.CONFIRMED,
+      createdAt: new Date(),
+    });
+
+    const el = createBookingFormElement(mockEvent);
+
+    fillInputs(el, { name: 'Ana', email: 'fan@correo.com', quantity: '2' });
+    submitForm(el);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(el.textContent).toContain('¡Reserva Confirmada!');
+  });
+
+  it('debe mostrar un mensaje genérico cuando el error no es una instancia de Error', async () => {
+    mockedCreateBooking.mockRejectedValue('fallo plano');
+
+    const el = createBookingFormElement(mockEvent);
+
+    fillInputs(el, { name: 'Ana', email: 'fan@correo.com', quantity: '2' });
+    submitForm(el);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const errorBlock = el.querySelector('#bloque-error') as HTMLElement | null;
+    expect(errorBlock?.textContent).toContain('No fue posible completar la reserva.');
+  });
+
+  it('debe permitir hacer otra reserva tras confirmar', async () => {
+    mockedCreateBooking.mockResolvedValue({
+      id: 'bk-7',
+      eventId: 'evt-1',
+      customerName: 'Ana',
+      customerEmail: 'fan@correo.com',
+      quantity: 2,
+      unitPrice: 45000,
+      totalPrice: 90000,
+      status: BookingStatus.CONFIRMED,
+      createdAt: new Date(),
+    });
+
+    const el = createBookingFormElement(mockEvent);
+    document.body.appendChild(el);
+
+    fillInputs(el, { name: 'Ana', email: 'fan@correo.com', quantity: '2' });
+    submitForm(el);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const btnNuevaReserva = el.querySelector('#btn-nueva-reserva') as HTMLButtonElement | null;
+    btnNuevaReserva?.dispatchEvent(new Event('click', { bubbles: true }));
+
+    const freshForm = document.body.querySelector('#form-reserva');
+    expect(freshForm).not.toBeNull();
+    expect(freshForm?.getAttribute('data-event-id')).toBe('evt-1');
+
+    document.body.innerHTML = '';
+  });
 });
