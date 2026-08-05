@@ -1,0 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --color-stage-black: #0a0a0f;
+  --color-stage-panel: #12121a;
+  --color-neon-violet: #8b5cf6;
+  --color-neon-fuchsia: #d946ef;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #0a0a0f;
+  color: #f4f4f5;
+  min-height: 100vh;
+  /* Fondo estilo escenario con reflectores */
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(139, 92, 246, 0.18) 0%, transparent 40%),
+    radial-gradient(circle at 100% 20%, rgba(217, 70, 239, 0.12) 0%, transparent 40%);
+  background-attachment: fixed;
+}
