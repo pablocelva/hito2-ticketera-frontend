@@ -38,7 +38,8 @@ El dominio modelado en Java se traduce a TypeScript y a los contratos HTTP del m
 
 - **Node.js ≥ 20.19** (lo exige Vite 8; recomendado 22.x)
 - **pnpm** (o npm)
-- Para la mock API: `express` y `cors` (se instalan con `pnpm install` dentro de `mockapi/`)
+- Para la mock API: `express`, `cors`, `typescript` y `tsx` (se instalan con
+  `pnpm install` dentro de `mockapi/`)
 
 ## Estructura del repositorio
 
@@ -49,10 +50,11 @@ hito2-ticketera-frontend/
 ├── tsconfig.json
 ├── vite.config.ts            # Tailwind plugin, proxy /api, config de Vitest
 ├── index.html
-├── mockapi/                  # backend simulado (Express + CORS), puerto 3100
+├── mockapi/                  # backend simulado en TypeScript (Express + CORS), puerto 3100
 │   ├── package.json
-│   ├── data.js               # eventos cartelera
-│   └── server.js             # endpoints de eventos y reservas
+│   ├── tsconfig.json
+│   ├── data.ts               # eventos de la cartelera (tipados con el modelo `Event`)
+│   └── server.ts             # endpoints de eventos y reservas
 ├── public/
 │   ├── data/events.json      # fallback estático (fechas DD-MM-YYYY)
 │   ├── images/               # imágenes de los artistas + placeholder.svg
@@ -66,7 +68,7 @@ hito2-ticketera-frontend/
 │   ├── components/           # EventCard, FeaturedBanner, BookingForm, skeletons, states, EventToolbar, Footer
 │   ├── utils/                # fechas, moneda, iconos, validaciones
 │   └── styles/global.css     # tema y animaciones (Tailwind v4)
-└── tests/                    # utils, config, services, components, views
+└── tests/                    # utils, config, services, components, views, mockapi
 ```
 
 ## Instalación y ejecución
@@ -86,10 +88,13 @@ pnpm run dev          # http://localhost:5173 (proxy /api → :3100)
 Si la mock API no está corriendo, la app usa automáticamente
 `public/data/events.json` como respaldo.
 
-## Mock API (Express)
+## Mock API (Express + TypeScript)
 
 Simula el backend del Hito 1: lista de eventos, detalle, un endpoint de error y la
-creación de reservas con las reglas de negocio (`capacity - ticketsSold`).
+creación de reservas con las reglas de negocio (`capacity - ticketsSold`). Está tipado
+con los **mismos modelos del frontend** (`Event`, `EventStatus`, `Booking`,
+`CreateBookingRequest`): `data.ts` y `server.ts` son una sola fuente de verdad con el
+contrato que consume la app. Se ejecuta con `tsx` (sin paso de build previo).
 
 | Método | Endpoint | Respuesta |
 |---|---|---|
@@ -121,7 +126,7 @@ apagada, `500`, cuerpo malformado) cae automáticamente a `public/data/events.js
 
 | Campo | Tipo | Descripción |
 |---|---|---|
-| `id` | `string` | Identificador (`evt-1` … `evt-10`) |
+| `id` | `string` | Identificador (`evt-1` … `evt-13`) |
 | `title` / `artist` | `string` | Título del evento y artista |
 | `venue` / `city` | `string` | Sede y ciudad |
 | `date` | `Date` | Fecha (parseada con `parseEventDate`) |
@@ -184,8 +189,8 @@ vivo) · `FINISHED` (finalizado) · `CANCELED` (cancelado)
   propaga el error y la vista muestra el estado de error con botón "Reintentar".
 - **`BookingService`**: solo un `TypeError` de `fetch` (servidor apagado) genera una
   reserva local de respaldo; los errores de negocio (`4xx`/`5xx`) se propagan y se
-  traducen a mensajes amigables para el usuario (p. ej. `502` → "El servicio de reservas
-  no está disponible en este momento").
+   traducen a mensajes amigables para el usuario (p. ej. `502` → "El servicio de reservas
+   no está disponible en este momento. Inténtalo nuevamente más tarde.").
 - Si la respuesta de error **no es JSON** (p. ej. una página HTML con `404` de un host
   estático sin API, como Netlify), se interpreta como "servicio de reservas no disponible"
   y no como un evento inexistente.
@@ -198,11 +203,13 @@ vivo) · `FINISHED` (finalizado) · `CANCELED` (cancelado)
 | `pnpm run build` | `tsc` (verificación estricta) + `vite build` |
 | `pnpm run preview` | Previsualizar el build de producción |
 | `pnpm run test` | Ejecutar la suite Vitest |
+| `pnpm run test:mockapi` | Solo los tests del mock API (`tests/mockapi/`) |
+| `pnpm run typecheck:mock` | Verificación estricta de `mockapi/` (`tsc -p mockapi/tsconfig.json`) |
 | `pnpm run coverage` | Suite + reporte de cobertura (v8, umbral 100% en `vite.config.ts`) |
 
 ## Tests
 
-Suite actual: **18 archivos / 148 tests** en verde.
+Suite actual: **21 archivos / 165 tests** en verde.
 
 - `tests/utils/` — fechas (ISO y DD-MM-YYYY), moneda, validaciones, iconos, HTTP,
   filtros/orden de eventos y URL de filtros
@@ -213,6 +220,13 @@ Suite actual: **18 archivos / 148 tests** en verde.
   `Footer`, `StateViews`, `LoadingSkeleton`
 - `tests/views/` — `EventBoardView` (loading, filtros, render, vacío, error, clics y
   guards nulos)
+- `tests/mockapi/` — tests del backend simulado:
+  - `data.test.ts` — valida el fixture contra la interfaz `Event` (13 eventos, campos
+    requeridos, estados `EventStatus`, coherencia numérica, fechas ISO)
+  - `coherence.test.ts` — garantiza que `mockapi/data.ts` y `public/data/events.json`
+    describan los mismos eventos (mismos ids y campos estables)
+  - `api.test.ts` — levanta `server.ts` como proceso hijo (puerto libre) y verifica el
+    contrato HTTP real: `GET` 200/404/500 y `POST` 201/400/404/409
 
 > **Cobertura 100 %:** la suite alcanza 100 % en líneas, funciones, ramas y sentencias
 > (`pnpm run coverage`). El `exclude` ignora `src/main.ts`, los barrels `**/index.ts`
@@ -222,8 +236,9 @@ Suite actual: **18 archivos / 148 tests** en verde.
 ## Personalización de datos
 
 - Los eventos viven en dos lugares que deben mantenerse en sincronía:
-  - `mockapi/data.js` (fuente primaria, fechas ISO)
+  - `mockapi/data.ts` (fuente primaria, fechas ISO)
   - `public/data/events.json` (fallback, fechas `DD-MM-YYYY`)
+- El test `tests/mockapi/coherence.test.ts` verifica esa sincronía en CI/local.
 - Las imágenes de los artistas van en `public/images/`; si una imagen falta, la tarjeta
   usa `placeholder.svg` por medio del `onerror`.
 - La moneda, los endpoints y el delay se configuran en `src/config/app.config.ts`.

@@ -8,6 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:mockapi": "vitest run tests/mockapi",
+    "typecheck:mock": "tsc -p mockapi/tsconfig.json",
     "coverage": "vitest run --coverage"
   },
   "devDependencies": {

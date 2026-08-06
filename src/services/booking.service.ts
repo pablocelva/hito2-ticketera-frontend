@@ -43,7 +43,7 @@ function delay(ms: number): Promise<void> {
 }
 
 const SERVICE_UNAVAILABLE_MESSAGE =
-  'El servicio de reservas no está disponible en este momento. Inténtalo nuevamente.';
+  'El servicio de reservas no está disponible en este momento. Inténtalo nuevamente más tarde.';
 
 interface ServerFailure {
   isJsonApi: boolean;
